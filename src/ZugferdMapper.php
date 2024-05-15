@@ -27,7 +27,7 @@ class ZugferdMapper
      *
      * @var array
      */
-    private $mappings = [];
+    private static $mappings = [];
 
     /**
      * Identifier for unit code mapping area
@@ -50,58 +50,124 @@ class ZugferdMapper
     public const DIRECTION_OUTGOING = "outgoing";
 
     /**
-     * Constructor
+     * Mapping array key identifier for direction
      */
-    public function __construct()
-    {
-    }
+    protected const KEY_DIRECTION = "direction";
+
+    /**
+     * Mapping array key identifier for the "from code"
+     */
+    protected const KEY_FROMCODE = "fromcode";
+
+    /**
+     * Mapping array key identifier for the "to code"
+     */
+    protected const KEY_TOCODE = "tocode";
 
     /**
      * Add a mapping to the internal mapping list
      *
      * @param string $mappingArea
-     * Gives the mapping area
      * @param string $direction
-     * The mapping direction
-     * @param string $ownCode
-     * Your own code
-     * @param string $zugferdCode
-     * A code from the official code lists
+     * @param string $fromCode
+     * @param string $toCode
      * @return void
      */
-    public function addMapping(string $mappingArea, string $direction, string $ownCode, string $zugferdCode): void
+    public static function addMapping(string $mappingArea, string $direction, string $fromCode, string $toCode): void
     {
-        $this->testMappingAreaIsValid($mappingArea);
-        $this->ensureMappingArea($mappingArea);
-        $this->mappings[$mappingArea][] = ["direction" => $direction, "owncode" => $ownCode, "zugferdcode" => $zugferdCode];
+        static::testMappingAreaIsValid($mappingArea);
+        static::testDirectionIsValid($direction);
+        static::ensureMappingArea($mappingArea);
+
+        static::$mappings[$mappingArea][] = [
+            static::KEY_DIRECTION => $direction,
+            static::KEY_FROMCODE => $fromCode,
+            static::KEY_TOCODE => $toCode,
+        ];
     }
 
     /**
      * Adds a unit code mapping
      *
-     * @param string $ownCode
-     * Your own code
-     * @param string $zugferdCode
-     * A code from the official code lists
+     * @param string $fromCode
+     * @param string $toCode
      * @return void
      */
-    public function addUnitCodeMapping(string $direction, string $ownCode, string $zugferdCode): void
+    public static function addUnitCodeMapping(string $direction, string $fromCode, string $toCode): void
     {
-        $this->addMapping(static::MAPPING_AREA_UNITCODE, $direction, $ownCode, $zugferdCode);
+        static::addMapping(static::MAPPING_AREA_UNITCODE, $direction, $fromCode, $toCode);
+    }
+
+    /**
+     * Adds a unit code mapping (for the incoming direction)
+     *
+     * @param string $fromCode
+     * @param string $toCode
+     * @return void
+     */
+    public static function addUnitCodeMappingIncoming(string $fromCode, string $toCode): void
+    {
+        static::addUnitCodeMapping(static::DIRECTION_INCOMING, $fromCode, $toCode);
+    }
+
+    /**
+     * Adds a unit code mapping (for the incoming direction)
+     *
+     * @param string $fromCode
+     * @param string $toCode
+     * @return void
+     */
+    public static function addUnitCodeMappingOutgoing(string $fromCode, string $toCode): void
+    {
+        static::addUnitCodeMapping(static::DIRECTION_OUTGOING, $fromCode, $toCode);
     }
 
     /**
      * Adds a currency code mapping
      *
-     * @param string $ownCode
-     * Your own code
-     * @param string $zugferdCode
-     * A code from the official code lists
+     * @param string $fromCode
+     * @param string $toCode
      * @return void
      */
-    public function addCurrencyMapping(string $direction, string $ownCode, string $zugferdCode): void
+    public static function addCurrencyMapping(string $direction, string $fromCode, string $toCode): void
     {
-        $this->addMapping(static::MAPPING_AREA_CURRENCY, $direction, $ownCode, $zugferdCode);
+        static::addMapping(static::MAPPING_AREA_CURRENCY, $direction, $fromCode, $toCode);
+    }
+
+    /**
+     * Adds a unit code mapping (for the incoming direction)
+     *
+     * @param string $fromCode
+     * @param string $toCode
+     * @return void
+     */
+    public static function addCurrencyMappingIncoming(string $fromCode, string $toCode): void
+    {
+        static::addCurrencyMapping(static::DIRECTION_INCOMING, $fromCode, $toCode);
+    }
+
+    /**
+     * Adds a unit code mapping (for the incoming direction)
+     *
+     * @param string $fromCode
+     * @param string $toCode
+     * @return void
+     */
+    public static function addCurrencyMappingOutgoing(string $fromCode, string $toCode): void
+    {
+        static::addCurrencyMapping(static::DIRECTION_OUTGOING, $fromCode, $toCode);
+    }
+
+    /**
+     * Remove all mappings (all mapping areas)
+     *
+     * @return void
+     */
+    public static function clearAllMappings(): void
+    {
+        foreach (static::getSupportedMappingAreas() as $mappingArea) {
+            static::clearMapping($mappingArea);
+        }
     }
 
     /**
@@ -111,63 +177,113 @@ class ZugferdMapper
      * The mapping area for which all mappings should be removed
      * @return void
      */
-    public function clearMapping(string $mappingArea): void
+    public static function clearMapping(string $mappingArea): void
     {
-        $this->testMappingAreaIsValid($mappingArea);
-        $this->ensureMappingArea($mappingArea);
-        $this->mappings[$mappingArea] = [];
+        static::testMappingAreaIsValid($mappingArea);
+        static::ensureMappingArea($mappingArea);
+        static::$mappings[$mappingArea] = [];
     }
 
     /**
-     * Gets the zugferd code for a specific mapping area by own code
+     * General function to retrieve a mapping for a direction and a mepping area by $fromCode.
+     * When no mapping was found the original $fromCode is returned
+     *
+     * @param string $direction
+     * @param string $mappingArea
+     * @param string $fromCode
+     * @return string
+     */
+    public static function getMapping(string $direction, string $mappingArea, string $fromCode): string
+    {
+        static::testMappingAreaIsValid($mappingArea);
+        static::testDirectionIsValid($direction);
+        static::ensureMappingArea($mappingArea);
+
+        $foundElements = array_filter(array_filter(static::$mappings[$mappingArea], function ($item) use ($direction) {
+            return strcasecmp($item[static::KEY_DIRECTION], $direction) === 0;
+        }), function ($item) use ($fromCode) {
+            return strcasecmp($item[static::KEY_FROMCODE], $fromCode) === 0;
+        });
+
+        if (($firstElement = reset($foundElements)) === false) {
+            return $fromCode;
+        }
+
+        return $firstElement[static::KEY_TOCODE];
+    }
+
+    /**
+     * Gets a mapping for the incoming direction and a specific mapping area
      *
      * @param string $mappingArea
      * The mapping area for which a mapping should be retrieved
-     * @param string $ownCode
+     * @param string $fromCode
      * Your own code
      * @return string
      * The zugferd code (from codelist)
      */
-    public function getMappingByOwnCode(string $mappingArea, string $ownCode): string
+    public static function getIncomingMapping(string $mappingArea, string $fromCode): string
     {
-        $this->testMappingAreaIsValid($mappingArea);
-        $this->ensureMappingArea($mappingArea);
-
-        foreach ($this->mappings[$mappingArea] as $mapping) {
-            if (strcasecmp($mapping["owncode"], $ownCode) !== 0) {
-                continue;
-            }
-
-            return $mapping["zugferdcode"];
-        }
-
-        return $ownCode;
+        return static::getMapping(static::DIRECTION_INCOMING, $mappingArea, $fromCode);
     }
 
     /**
-     * Gets your own code for a specific mapping area by a code from official code lists
+     * Gets a unit code mapping for the incoming direction
+     *
+     * @param string $fromCode
+     * @return string
+     */
+    public static function getIncomingUnitCodeMapping(string $fromCode): string
+    {
+        return static::getIncomingMapping(static::MAPPING_AREA_UNITCODE, $fromCode);
+    }
+
+    /**
+     * Gets a currency mapping for the incoming direction
+     *
+     * @param string $fromCode
+     * @return string
+     */
+    public static function getIncomingCurrencyMapping(string $fromCode): string
+    {
+        return static::getIncomingMapping(static::MAPPING_AREA_CURRENCY, $fromCode);
+    }
+
+    /**
+     * Gets a mapping for the outgoing direction and a specific mapping area
      *
      * @param string $mappingArea
      * The mapping area for which a mapping should be retrieved
-     * @param string $zugferdCode
-     * A code from the official code lists
-     * @return string
+     * @param string $fromCode
      * Your own code
+     * @return string
+     * The zugferd code (from codelist)
      */
-    public function getMappingByZugferdCode(string $mappingArea, string $zugferdCode): string
+    public static function getOutgoingMapping(string $mappingArea, string $fromCode): string
     {
-        $this->testMappingAreaIsValid($mappingArea);
-        $this->ensureMappingArea($mappingArea);
+        return static::getMapping(static::DIRECTION_OUTGOING, $mappingArea, $fromCode);
+    }
 
-        foreach ($this->mappings[$mappingArea] as $mapping) {
-            if (strcasecmp($mapping["zugferdcode"], $zugferdCode) !== 0) {
-                continue;
-            }
+    /**
+     * Gets a unit code mapping for the outgoing direction
+     *
+     * @param string $fromCode
+     * @return string
+     */
+    public static function getOutgoingUnitCodeMapping(string $fromCode): string
+    {
+        return static::getOutgoingMapping(static::MAPPING_AREA_UNITCODE, $fromCode);
+    }
 
-            return $mapping["owncode"];
-        }
-
-        return $zugferdCode;
+    /**
+     * Gets a currency mapping for the outgoing direction
+     *
+     * @param string $fromCode
+     * @return string
+     */
+    public static function getOutgoingCurrencyMapping(string $fromCode): string
+    {
+        return static::getOutgoingMapping(static::MAPPING_AREA_CURRENCY, $fromCode);
     }
 
     /**
@@ -176,13 +292,13 @@ class ZugferdMapper
      * @param string $mappingArea
      * @return void
      */
-    private function ensureMappingArea(string $mappingArea): void
+    private static function ensureMappingArea(string $mappingArea): void
     {
-        if (isset($this->mappings[$mappingArea])) {
+        if (isset(static::$mappings[$mappingArea])) {
             return;
         }
 
-        $this->mappings[$mappingArea] = [];
+        static::$mappings[$mappingArea] = [];
     }
 
     /**
@@ -190,7 +306,7 @@ class ZugferdMapper
      *
      * @return array
      */
-    private function getSupportedMappingAreas(): array
+    private static function getSupportedMappingAreas(): array
     {
         return [
             static::MAPPING_AREA_UNITCODE,
@@ -204,9 +320,9 @@ class ZugferdMapper
      * @param string $mappingArea
      * @return boolean
      */
-    private function checkMappingAreaIsValid(string $mappingArea): bool
+    private static function checkMappingAreaIsValid(string $mappingArea): bool
     {
-        return in_array($mappingArea, $this->getSupportedMappingAreas());
+        return in_array($mappingArea, static::getSupportedMappingAreas());
     }
 
     /**
@@ -215,9 +331,9 @@ class ZugferdMapper
      * @param string $mappingArea
      * @return void
      */
-    private function testMappingAreaIsValid(string $mappingArea): void
+    private static function testMappingAreaIsValid(string $mappingArea): void
     {
-        if ($this->checkMappingAreaIsValid($mappingArea)) {
+        if (static::checkMappingAreaIsValid($mappingArea)) {
             return;
         }
 
@@ -229,7 +345,7 @@ class ZugferdMapper
      *
      * @return array
      */
-    private function getSupportedDirections(): array
+    private static function getSupportedDirections(): array
     {
         return [
             static::DIRECTION_INCOMING,
@@ -243,9 +359,9 @@ class ZugferdMapper
      * @param string $direction
      * @return boolean
      */
-    private function checkDirectionIsValid(string $direction): bool
+    private static function checkDirectionIsValid(string $direction): bool
     {
-        return in_array($direction, $this->getSupportedDirections());
+        return in_array($direction, static::getSupportedDirections());
     }
 
     /**
@@ -253,9 +369,9 @@ class ZugferdMapper
      * @return void
      * @throws InvalidArgumentException
      */
-    private function testDirectionIsValid(string $direction): void
+    private static function testDirectionIsValid(string $direction): void
     {
-        if ($this->checkDirectionIsValid($direction)) {
+        if (static::checkDirectionIsValid($direction)) {
             return;
         }
 
