@@ -48,6 +48,9 @@
         <testsuite name="Exporter">
             <file>../tests/testcases/JsonExporterTest.php</file>
         </testsuite>
+        <testsuite name="Mapper">
+            <file>../tests/testcases/MapperTest.php</file>
+        </testsuite>
         <testsuite name="issues">
             <file>../tests/testcases/issues/Issue10Test.php</file>
             <file>../tests/testcases/issues/Issue18Test.php</file>
