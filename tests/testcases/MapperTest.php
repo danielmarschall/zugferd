@@ -179,4 +179,20 @@ class MapperTest extends TestCase
             }
         );
     }
+
+    public function testSaveToJsonFile(): void
+    {
+        $filename = getcwd() . "/mappings.json";
+
+        ZugferdMapper::addCurrencyMappingIncoming('EUR', 'EUR');
+        ZugferdMapper::addCurrencyMappingIncoming('DEM', 'DM');
+        ZugferdMapper::addCurrencyMappingOutgoing('EUR', 'EUR');
+        ZugferdMapper::addCurrencyMappingOutgoing('DM', 'DEM');
+        ZugferdMapper::addUnitCodeMappingIncoming('C62', 'STK');
+        ZugferdMapper::addUnitCodeMappingOutgoing('STK', 'C62');
+
+        ZugferdMapper::saveToJsonFile($filename);
+
+        $this->assertTrue(file_exists($filename));
+    }
 }

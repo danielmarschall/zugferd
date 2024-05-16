@@ -65,6 +65,42 @@ class ZugferdMapper
     protected const KEY_TOCODE = "tocode";
 
     /**
+     * Load mappings from JSON string
+     *
+     * @param string $json
+     * @return boolean
+     */
+    public static function loadFromJson(string $json): bool
+    {
+        $jsonDecoded = json_decode($json, true);
+
+        if (!is_array($jsonDecoded)) {
+            return false;
+        }
+    }
+
+    /**
+     * Saves mappings to JSON string
+     *
+     * @return string
+     */
+    public static function saveToJson(): string
+    {
+        return json_encode(static::$mappings, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    }
+
+    /**
+     * Saves mappings to a JSON file
+     *
+     * @param string $filename
+     * @return boolean
+     */
+    public static function saveToJsonFile(string $filename): bool
+    {
+        return file_put_contents($filename, static::saveToJson()) !== false;
+    }
+
+    /**
      * Add a mapping to the internal mapping list
      *
      * @param string $mappingArea
