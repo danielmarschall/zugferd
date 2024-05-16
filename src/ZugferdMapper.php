@@ -65,7 +65,8 @@ class ZugferdMapper
     protected const KEY_TOCODE = "tocode";
 
     /**
-     * Load mappings from JSON string
+     * Load mappings from JSON string. This performs a validation before loading
+     * the json to internal mapping storage
      *
      * @param string $json
      * @return boolean
@@ -77,6 +78,51 @@ class ZugferdMapper
         if (!is_array($jsonDecoded)) {
             return false;
         }
+
+        foreach (static::getSupportedMappingAreas() as $meppingArea) {
+            if (!isset($jsonDecoded[$meppingArea])) {
+                return false;
+            }
+            if (!is_array($jsonDecoded[$meppingArea])) {
+                return false;
+            }
+            foreach ($jsonDecoded[$meppingArea] as $mappingItem) {
+                if (!isset($mappingItem[static::KEY_DIRECTION])) {
+                    return false;
+                }
+                if (!isset($mappingItem[static::KEY_FROMCODE])) {
+                    return false;
+                }
+                if (!isset($mappingItem[static::KEY_TOCODE])) {
+                    return false;
+                }
+            }
+        }
+
+        static::$mappings = $jsonDecoded;
+
+        return true;
+    }
+
+    /**
+     * Load mappings from JSON file
+     *
+     * @param string $filename
+     * @return boolean
+     */
+    public static function loadFromJsonFile(string $filename): bool
+    {
+        if (!file_exists($filename)) {
+            return false;
+        }
+
+        $json = file_get_contents($filename);
+
+        if ($json === false) {
+            return false;
+        }
+
+        return static::loadFromJson($json);
     }
 
     /**

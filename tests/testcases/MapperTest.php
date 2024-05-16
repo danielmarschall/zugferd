@@ -184,6 +184,7 @@ class MapperTest extends TestCase
     {
         $filename = getcwd() . "/mappings.json";
 
+        ZugferdMapper::clearAllMappings();
         ZugferdMapper::addCurrencyMappingIncoming('EUR', 'EUR');
         ZugferdMapper::addCurrencyMappingIncoming('DEM', 'DM');
         ZugferdMapper::addCurrencyMappingOutgoing('EUR', 'EUR');
@@ -191,8 +192,48 @@ class MapperTest extends TestCase
         ZugferdMapper::addUnitCodeMappingIncoming('C62', 'STK');
         ZugferdMapper::addUnitCodeMappingOutgoing('STK', 'C62');
 
-        ZugferdMapper::saveToJsonFile($filename);
-
+        $this->assertTrue(ZugferdMapper::saveToJsonFile($filename));
         $this->assertTrue(file_exists($filename));
+
+        @unlink($filename);
+    }
+
+    public function testLoadFromJsonFile(): void
+    {
+        $filename = getcwd() . "/mappings.json";
+
+        ZugferdMapper::clearAllMappings();
+        ZugferdMapper::addCurrencyMappingIncoming('EUR', 'EUR');
+        ZugferdMapper::addCurrencyMappingIncoming('DEM', 'DM');
+        ZugferdMapper::addCurrencyMappingOutgoing('EUR', 'EUR');
+        ZugferdMapper::addCurrencyMappingOutgoing('DM', 'DEM');
+        ZugferdMapper::addUnitCodeMappingIncoming('C62', 'STK');
+        ZugferdMapper::addUnitCodeMappingOutgoing('STK', 'C62');
+
+        $this->assertTrue(ZugferdMapper::saveToJsonFile($filename));
+        $this->assertTrue(file_exists($filename));
+
+        ZugferdMapper::clearAllMappings();
+
+        $this->assertNotEquals('DM', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'DEM'));
+        $this->assertNotEquals('DEM', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'DM'));
+        $this->assertNotEquals('STK', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'C62'));
+        $this->assertNotEquals('C62', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'STK'));
+
+        $this->assertTrue(ZugferdMapper::loadFromJsonFile($filename));
+
+        $this->assertEquals('EUR', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'EUR'));
+        $this->assertEquals('DM', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'DEM'));
+        $this->assertEquals('GBP', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'GBP'));
+        $this->assertEquals('EUR', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'EUR'));
+        $this->assertEquals('DEM', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'DM'));
+        $this->assertEquals('GBP', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_CURRENCY, 'GBP'));
+
+        $this->assertEquals('STK', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'C62'));
+        $this->assertEquals('XPP', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_INCOMING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'XPP'));
+        $this->assertEquals('C62', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'STK'));
+        $this->assertEquals('XPP', ZugferdMapper::getMapping(ZugferdMapper::DIRECTION_OUTGOING, ZugferdMapper::MAPPING_AREA_UNITCODE, 'XPP'));
+
+        @unlink($filename);
     }
 }
